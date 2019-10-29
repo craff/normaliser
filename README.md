@@ -1,12 +1,5 @@
 
-*************************************************************************
-*                                                                       *
-*           A normaliser for pure and typed lambda-calculus             *
-*                                                                       *
-*                            C. Raffalli                                *
-*                                                                       *
-*************************************************************************
-
+## A normaliser for pure and typed lambda-calculus
 
   This program provides a useful environment to write programs in pure
 lambda-calculus. Given a term, the program will compute and print its
