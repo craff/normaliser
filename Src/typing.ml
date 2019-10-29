@@ -341,7 +341,7 @@ let map_vect2 f v1 v2 =
   let l = Array.length v1 in
   if Array.length v2 <> l then raise (Invalid_argument "map_vect2");
   if l = 0 then [||] else begin
-    let v = Array.create l (f v1.(0) v2.(0)) in
+    let v = Array.make l (f v1.(0) v2.(0)) in
     for i = 1 to l - 1 do
       v.(i) <- f v1.(i) v2.(i)
     done; v

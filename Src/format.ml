@@ -255,10 +255,10 @@ let rec advance_left () =
     try
      match Queue.peek pp_queue with
       {elem_size = size; token = tok; length = len} ->
-       if (not ((size < 0 &
+       if (not ((size < 0 &&
                (!pp_right_total - !pp_left_total < !pp_space_left)))) then
         begin
-         Queue.take pp_queue;
+         let _ = Queue.take pp_queue in
          format_pp_token (if size < 0 then pp_infinity else size) tok;
          pp_left_total := len + !pp_left_total;
          advance_left ()
@@ -384,7 +384,7 @@ let print_string s = print_as (String.length s) s;;
 let print_int i = print_string (string_of_int i);;
 
 (* To format a float *)
-let print_float f = print_string (Pervasives.string_of_float f);;
+let print_float f = print_string (string_of_float f);;
 
 (* To format a boolean *)
 let print_bool b = print_string (string_of_bool b);;

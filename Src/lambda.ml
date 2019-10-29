@@ -150,7 +150,7 @@ let rec terme2cterme t=
   | FVar(_,v) -> bCFVar v
   | Let(_,b,sl,f) -> bCLet b sl (fun v ->
       let l = Array.length sl in
-      let w = Array.create l (SVar "") in
+      let w = Array.make l (SVar "") in
       for i = 0 to l - 1 do w.(i) <- TCVar(fun () -> bproj i v) done;
       Array.map fn (subst f w))
   | Lam(_,_,f) -> fn (subst f (TStr ""))
@@ -201,8 +201,8 @@ let not_occur = function
 ;;
 
 let build_sign n f =
-  let v = Array.create n None0 in
-  let w = Array.create n (TCst (ref (-1))) in
+  let v = Array.make n None0 in
+  let w = Array.make n (TCst (ref (-1))) in
   for i = 0 to (n - 1) do w.(i) <- TCst (ref i) done;
   let rec fn pos = function
     Forall (_,f) | Mu (_,f)
@@ -585,7 +585,7 @@ let rec normg' t =
              [] -> do_app (unit idt0)
            | t::s -> stack:=s; incr step; norm_aux t)
         | CLet (_,sl,fv) ->
-           let v = Array.create (Array.length sl) dum in
+           let v = Array.make (Array.length sl) dum in
            for i = 0 to Array.length sl - 1 do
              v.(i) <- CBox(ref(false, dum))
            done;
@@ -669,7 +669,7 @@ let rec norml' t =
            | t::s -> stack:=s; incr step; norm_aux t
            in fn !stack
         | CLet (_,sl,fv) ->
-           let v = Array.create (Array.length sl) (dum) in
+           let v = Array.make (Array.length sl) (dum) in
            for i = 0 to Array.length sl - 1 do
              v.(i) <- CBox(ref(false, dum))
            done;
@@ -771,7 +771,7 @@ let rec normt t =
            | t::s -> stack:=s; incr step; norm_aux varl n b t)
 
         | CLet (_,sl,fv) ->
-           let v = Array.create (Array.length sl) (dum) in
+           let v = Array.make (Array.length sl) (dum) in
            for i = 0 to Array.length sl - 1 do
              v.(i) <- CBox(ref(false, dum))
            done;

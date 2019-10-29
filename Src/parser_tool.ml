@@ -234,13 +234,13 @@ let rec read_fun str pos =
       icur:=0; icol:=!cur_col; ilin:=!cur_line
     end;
     if !icur < !isize then
-      !ibuf.[!icur] <- c
+      Bytes.set !ibuf !icur c
     else begin
       let old = !ibuf in
       isize:=2 * !isize + 1;
       ibuf := Bytes.make (!isize+1) ' ';
       replace_string !ibuf old 0;
-      !ibuf.[!icur] <- c
+      Bytes.set !ibuf !icur c
     end;
     incr icur;
     incr cur_col;
@@ -249,20 +249,20 @@ let rec read_fun str pos =
     bol := c == '\n';
     if !bol then begin incr cur_line; cur_col := 0 end;
     if c == '\013' then cur_col := 0;
-    String.set str 0 c;
+    Bytes.set str 0 c;
     1
 
   with End_of_file ->
     bol := !init;
     init:= false;
-    !ibuf.[!icur] <- Char.chr (0xFF);
+    Bytes.set !ibuf !icur (Char.chr 0xFF);
     0
 ;;
 
 let is_end_of_file () = Bytes.get !ibuf !icur = Char.chr (0xFF);;
 
 let print_input {lbg=lbg; cbg=cbg; lnd=lnd; cnd=cnd} =
-  !ibuf.[!icur] <- '\n';
+  Bytes.set !ibuf !icur '\n';
   let cl = ref !ilin and cc = ref !icol and ic = ref 0 in
   while !cl < lbg do
     let c = Bytes.get !ibuf !ic in

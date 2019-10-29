@@ -198,7 +198,7 @@ terme_atom :
 | Let recs terme_let In terme
     { let ll = $3 and i,t = $5 in
       let size = 1 + List.length ll in
-      let v = Array.create size t and sl = Array.create size (i,"") in
+      let v = Array.make size t and sl = Array.make size (i,"") in
       let rec fn i = function
         [] -> ()
       | (i',s,t,k)::ll -> v.(i) <- t; sl.(i) <- i',s; fn (i+1) ll in
