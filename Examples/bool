@@ -1,0 +1,10 @@
+# boolean 
+typed off;
+
+let True = \x y.x;
+let False = \x y.y;
+
+let if = \b x y.b x y;
+let an = \b1 b2. b1 b2 False;
+let or = \b1 b2. b1 True b2;
+let not = \b1. b1 False True;

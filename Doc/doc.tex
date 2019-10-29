@@ -1,0 +1,760 @@
+\documentstyle[a4,12pt]{article}
+
+\newcommand\TLambda{$\lambda$}
+
+\title{A Normaliser for Pure and Typed $\lambda$-Calculus\\
+       {\normalsize version 2.3}}
+\author{Christophe Raffalli
+  \thanks{\tt email: Christophe.Raffalli@univ-savoie.fr} \\
+  Laboratoire de Math\'ematiques \ LAMA \\ 
+  Universit\'e de Savoie} \date{November 1997}
+
+\hfuzz=2pt
+\newif\ifnofirst
+\newenvironment{definition}{%
+  \nofirstfalse%
+  \newcommand{\ditem}[1]{\ifnofirst\endlist\endgroup\else\nofirsttrue\fi%
+                         {\noindent##1}\begingroup\list{}{}\item}}%
+  {\endlist\endgroup}
+\def\verbatimfile#1{
+  \def\inputfile{\input{#1}}
+  \def\beginverb{\begin{verbatim}}
+  \expandafter\beginverb\inputfile
+}
+
+\begin{document}
+
+\maketitle
+
+\abstract{This document presents a normaliser for pure \TLambda-calculus. It
+  can be used for teaching purpose or just to have fun (yes pure
+  \TLambda-calculus can be fun~!). It also allows programming in Girard's
+  system F. It is reasonably efficient and has enough features to develop
+  middle size programs. But be aware, this is not intended to be a useful
+  programming language for real purpose implementations~!}
+
+\tableofcontents
+
+\section{Introduction.}
+
+This program provides a useful environment to write programs in pure
+\TLambda-calculus or in system F (extended or not with inductive types). Given
+a term, the program will compute and print its normal form. This means that,
+unlike most functional languages, computation is done under function
+abstractions (or lambdas).
+
+This software might be used for teaching \TLambda-calculus or
+just to play with it.
+
+It has some interesting features :
+
+\begin{itemize}
+\item Three modes of evaluation:
+  \begin{description}
+  \item[lazy]: call-by-name with some sharing 
+  \item[left]: call-by-name with no sharing 
+  \item[trace]: call-by-name and printing of each beta-reduction step.
+  \end{description}
+  
+\item It is implemented in Objective Caml (a dialect of ML) so easily portable
+  to many machines, even very small ones.
+
+\item It is quite efficient. It uses a High-Order-Abstract-Syntax
+  representation of terms which help to benefit from ML management of closure.
+  This is specially optimised to give both reasonable performance in speed and
+  memory. It's possible to terminate computation of factorial 100 with a
+  binary encoding of natural numbers~!
+    
+\item You can define terms (even using recursive definitions) or include
+  files. This gives enough modularity to write fairly large terms.
+
+\item You can use a typing algorithm for system F (with or without inductive
+  type) to program more ``safely''.
+
+\end{itemize}
+
+Warning: This documentation does not describe what is the $\lambda$-calculus or
+system F. It only describes the syntax and the command used by the normaliser.
+To know more about the $\lambda$-calculus or system F, see the bibliography.
+ 
+\section{Getting started.}
+
+The sources are available by {\tt ftp}. They can be compiled very easily
+(after you installed Caml-Light and if you have a Unix-like {\tt make}
+command).  You can also get a Macintosh stand-alone application which does not
+require Caml-Light.
+
+The ftp site to get the program is:
+\begin{verbatim}
+site = ftp.logique.jussieu.fr
+dir  = pub/distrib/raffalli
+file = lambda.tar.gz   # Unix version
+       lambda.sea.hqx  # Mac version 
+\end{verbatim}
+
+To install proceed a follow:
+\begin{itemize}
+\item On a Unix Machine: get and install Caml-Light (V0.7 only): The ftp site
+  is
+  \begin{verbatim}
+  site = ftp.inria.fr (192.93.2.54)
+  dir  = lang/caml-light
+  \end{verbatim}
+  Go into the directory Src and type {\tt make}. This should produce an
+  executable file {\tt lambda} which is the normaliser.  You can also type
+  {\tt make lambdaopt}. This should produce an executable file {\tt lambdaopt}
+  compiled by the native code compiler (ocamlopt).
+  
+\item On a Macintosh: The Macintosh version will be available as soon as
+  Objective Caml has been ported !
+
+\end{itemize}
+
+You can now launch the program and play with it. Here is the classical
+examples of church numerals (What follows the prompt ``{\verb@%>@}'' is what
+you should type, everything else is printed by the normaliser):
+\begin{verbatim}
+
+---------------------------------
+|  The Normaliser, version 2.2  |
+| by C. Raffalli, November 1996 |
+---------------------------------
+
+Can't read startup file ".lambdarc" (ignored).
+%> let 0 = \f x.x;
+New term "0" defined.
+%> let S = \n f x.f (n f x);
+New term "S" defined.
+%> let 1 = S 0;
+New term "1" defined.
+%> let 2 = S 1;
+New term "2" defined.
+.....
+%> let 9 = S 8;
+New term "9" defined.
+%> let 10 = S 9;
+New term "10" defined.
+%> let Add = \n m f x.n f (m f x);
+New term "Add" defined.
+%> let Mul = \n m f.n (m f);
+New term "Mul" defined.
+%> let 20 = Add 10 10;
+New term "20" defined.
+.....
+%> let 100 = Mul 10 10;
+New term "100" defined.
+%> let pred = \n.n (\p x y.p (S x) x) (\x y.y) 0 0;
+New term "pred" defined.
+%> 20;
+\f x.f (f (f (f (f (f (f (f (f (f (f (f (f (f (f (f 
+(f (f (f (f x)))))))))))))))))))
+number of beta-reduction : 66
+%> 100 pred 100;
+\f x.x
+number of beta-reduction : 31010
+\end{verbatim}
+Note that identifiers can use numbers and also the characters ``{\verb@_@}''
+and ``{\verb@'@}'' (but not in first position).
+
+The line ``{\tt Can't read startup file ".lambdarc" (ignored).}'', in the
+above example, tells that the program could not find a startup file. Indeed
+the program search for a file {\tt .lambdarc} first in your home directory,
+and then in the current directory (on macintosh the file {\tt lambdarc}
+(without dot) is search in the directory where the application resides).  If
+found, the file is included (See {\tt include} command). This file can by used
+to set up some path or other initial commands like {\tt recursive}.  On
+macintosh, a default startup file is furnished with the distribution, which
+setup a path on the {\tt Examples} directory.
+
+Note: You can use Control-C (Command-. on a Mac) to stop looping
+commands like the normalisation of a non-normalisable term or the
+recursive printing ({\tt prrec} command) of a term using recursive
+definitions.
+
+\section{Syntax of term.}
+
+\TLambda-term are constructed using variables, applications and abstractions. 
+\begin{description}
+\item[Variables]: They can be written using any letters (capital or not),
+  digits and (but not in first position) the two characters ``{\verb@_@}'' and
+  ``{\verb@'@}'' in any order. Variables are also used as names for defined
+  terms (cf {\tt def} and {\tt redef} commands). The following names are
+  valid:
+\begin{verbatim}
+x   y   xx   x0   0   x'   y'   a_variable   a___'' 
+\end{verbatim}
+  Moreover, the following identifier are {\em keywords} and can not be used as
+  variable names:
+\begin{verbatim}
+  and def fun in include inductive lazy left let margin 
+  max_depth max_indent mode off on path print prrec quit 
+  rec recursive redef tab trace type typed verbose
+\end{verbatim}
+  
+\item[Application]: is written simply by writing first the function followed by
+  its argument: {\tt {\it term1} {\it term2}} is the application of the term
+  {\tt\it term1} to the term {\tt\it term2}. Multiple application can be used
+  and is left associative: {\tt {\it term1} {\it term2} {\it term3} {\it
+      term4} ....} stands for {\tt (...((({\it term1} {\it term2}) {\it
+      term3}) {\it term4}) ....)}.
+  
+\item[Abstraction]: The abstraction of the variable {\verb@x@} in the term
+  {\tt\it term} is written {\tt {\verb@\x.@}{\it term}}. Multiple abstraction
+  can be used {\tt\verb@\@x1 x2 x3 x4.{\it term}} stands for
+  {\tt\verb@\x1.\x2.\x3.\x4.@{\it term}}. \verb@fun@ and \verb@=>@ are
+  alternative keywords for \verb@\@ and \verb@.@.
+
+\item[Parenthesis]: Parenthesis may be used for grouping. The scope of an
+  abstraction extends as far as possible according to the parenthesis.  So
+  {\verb@\x y.x y@} means {\verb@\x.\y.(x y)@} and 
+  {\verb@\x y z. x z (y z)@} means {\verb@\x.\y.\z.((x z) (y z))@}.
+  
+\item[Naming Convention]: When terms are printed by the normaliser, the
+  original names of bound variables are kept and, when necessary to avoid
+  captures, a number is appended to the name. Thus, if you use meaningful
+  names, term can be reasonably readable.
+
+\item[Extensions]: Some useful extensions are provided:
+\begin{description}
+\item[Local \verb@let@ and \verb@let rec@]: 
+  Local definitions in a term are available:
+\begin{center}
+  \tt let {\it f1 a1 ... an} = {\it term1} and 
+          {\it f2 b1 ... bp} = {\it term2} and
+          ....
+      in {\it term}  
+\end{center}
+  This \verb@let@ construction define the symbols {\tt\it f1} =
+  {\tt\verb@\@{\it a1} ... {\it an}. {\it term1}}, {\tt\it f2} =
+  {\tt\verb@\@{\it b1} ... {\it bp}. {\it term2}}, ... local to the definition
+  of {\tt\it term}.
+  
+  It is also possible to use a similar syntax with \verb@let rec@ to have
+  local recursive definition. This allows a very simple definition of a
+  fix-point: \verb@let rec fix f = f (fix f) in fix@. The use of 
+  \verb@let rec@ is only possible when recursive definition are allowed 
+  (by default they
+  are not allowed). Look at the {\tt let} and {\tt recursive} commands in the
+  next section.
+  
+\item[Side effect]: It is difficult (or even impossible) to read a result of a
+  computation printed as a \TLambda-term (even with the naming convention). To
+  solve a little this problem, side effect are available. A string like
+  \verb@"message"@ is a valid term. It is equivalent to the identity
+  (\verb@\x.x@) but when it gets an argument, the string is printed on the
+  terminal. Inside string, the following escape sequence are available:
+  \begin{center}
+  \begin{tabular}{|l|l|}
+  \hline
+  Sequence & Character denoted \cr \hline
+  \verb@\\@ & for one backslash (\verb@\@) \cr
+  \verb@\"@ & for double quote (\verb@"@) \cr
+  \verb@\n@ & for newline (\verb@CR@)\cr
+  \verb@\r@ & for return (\verb@CR@)\cr
+  \verb@\t@ & for tabulation (\verb@TAB@)\cr
+  \verb@\b@ & for backspace (\verb@BS@)\cr
+  \tt\verb@\@{\it ddd} & for the character with ASCII code {\tt\it ddd}
+    in decimal\cr
+  \hline
+  \end{tabular}
+  \end{center}
+  For instance, the following term prints Church numeral:
+\begin{verbatim}
+%> let print_church = \n. n "S" "0\n";
+New term "print_church" defined.
+%> print_church 30;
+SSSSSSSSSSSSSSSSSSSSSSSSSSSSSS0
+\x.x
+number of beta-reduction : 105
+\end{verbatim}
+
+\end{description}
+
+\end{description}
+
+\section{The type system.}
+
+Programming in untyped $\lambda$-calculus can be very difficult ! Hopefully
+this software provide a type system ! To turn on the type system, you must use
+the \verb@typed@ command (see the list of commands). The type system we use is
+Girard system F \cite{Kri90e,Gir86,GLT88} with or without inductive types
+(inductive types corresponds to fixed-point of types). A description of the
+algorithm can be found in \cite{Raf95}. The syntax of types is the following:
+\begin{description}
+\item[Type variable]: Type variables use the same syntax as term variables.
+\item[Parametric type]: If {\tt\it name} is a parametric type with $n$
+  arguments defined using
+  the {\tt type} command, then {\tt{\it name}[{\it type1},...,{\it typen}]} is
+    a valid type if {\tt\it type1}, \dots, {\tt\it typen} are valid types too.
+  Defined types with no arguments are used with the same syntax as type
+  variables.
+\item[Implication]: If {\tt\it type1} and {\tt\it type2} are valid types then 
+  {\tt{\it type1} -> {\it type2}} is a valid type. Implications are right
+  associative. This mean that \verb@A -> B -> C@ is read as 
+  \verb@A -> (B -> C)@.
+\item[Quantification]: If {\tt\it name} is a type variable and if {\tt\it
+    type} is a type then {\tt\verb@/\@{\it name} {\it type}} is a valid type.
+  Quantifications are read with the smallest possible scope: \verb@/\X A -> B@
+  is read as \verb@(/\X A) -> B@.
+\item[Inductive type]: If {\tt\it name} is a type variable and if {\tt\it type}
+  is a type then {\tt\verb@!@{\it name} {\it type}} is a valid type.
+  Inductive types are read with the smallest possible scope. This means that
+  \verb@!X A -> B@ is read as \verb@(!X A) -> B@. Inductive types are illegal
+  by default. To be able to use them, you must use the \verb@inductive@
+  command (see the list of commands). If \verb@X@ has a non {\em positive}
+  occurrence in \verb@A@, the inductive type \verb@!X A@ is allowed but it is
+  not a fixed-point and it is therefore useless.
+\end{description}
+
+The typing algorithm is incomplete and do not provide principal types.
+Therefore, you need to add some type information in terms. There are two kinds
+of type information:
+\begin{description}
+\item[Type casting]: You can indicate the type of any expression or variables
+  using the syntax {\tt{\it term\_or\_var} :{\it type}}. These type
+  annotations are read with the smallest possible scope: \verb@t u : A@ is
+  read as \verb@t (u : A)@.
+\item[Local type variable]: To use a type variable local to a term, you can
+  use the syntax {\tt\verb@/\@{\it name} {\it term}}. This make is possible to
+  use {\tt\it name} in some type annotation. Be careful the scoping of
+  \verb@/\@ in terms is the largest possible like for abstraction while it is
+  the smallest possible in types.
+\end{description}
+
+There is one important rule concerning type information: they are read from
+left to right. This implies that, if you want to understand the reasons of a
+type error, you can add some type annotation {\bf before} the end of the piece
+of code which could not be typed. Here is an example:
+\begin{verbatim}
+%> typed;
+typed is now on.
+%> let delta = \x.x x;
+Warning: hiding old definition of "delta".
+*** Near:
+let delta = \x.x x;
+                 ^ 
+*** Type error: 
+Inferred type is ?4 -> ?3
+Used type is ?4
+%> let delta = \x:/\X X. x x;
+Warning: hiding old definition of "delta".
+delta : /\X (/\X1 X1 -> X)
+\end{verbatim}
+
+Moreover, the typing algorithm can loop (this is very rare with pure system F,
+but quite common when using inductive types). When this appends, you can
+interrupt the typing algorithm (using \verb@control-C@) and get an error
+message which tell you which part of the code started the loop.
+
+Here are some examples of typed programs:
+
+\subsection*{Booleans:}
+
+\verbatimfile{../Examples/bool.typ}
+\end{verbatim}
+
+\subsection*{Pairs:}
+
+\verbatimfile{../Examples/prod.typ}
+\end{verbatim}
+
+\subsection*{Church's numeral:}
+
+\verbatimfile{../Examples/church.typ}
+\end{verbatim}
+
+\section{List of commands.}
+
+\begin{definition}
+\ditem{\tt {\it term} ;} normalise the term
+\begin{verbatim}
+%> (\x.x) \x.x;
+\x.x
+number of beta-reduction : 1
+\end{verbatim}
+   
+\ditem{\tt \# ......} comment the end of a line (thus everything
+  on the line is ignored after the `{\verb@#@}` character).
+\begin{verbatim}
+%> # this is a comment~!
+\end{verbatim}
+  
+\ditem{\verb@(* ..... *)@} This is another form of command, which allow you to
+comment big part of a file (nested comment are handled properly).
+\begin{verbatim}
+%> (* this is a comment (* ! *) *)
+\end{verbatim}
+
+\ditem{\tt def ....;} Identic to the {\tt let} command (for compatibility
+with the previous version).
+
+\ditem{\tt include "{\it filename}" ;} load a file as if you typed its
+  content on your terminal.
+\begin{verbatim}
+%> include "bool";
+Opening file "bool".
+typed is now off.
+New term "True" defined.
+New term "False" defined.
+New term "if" defined.
+New term "an" defined.
+New term "or" defined.
+New term "not" defined.
+Closing file "bool".
+\end{verbatim}
+
+\ditem{\tt inductive [on];} 
+        turn on the possibility to use inductive types
+          with "let" and "redef" commands.
+\ditem{\tt inductive off ;}
+        turn off the possibility to use inductive types
+          with "let" and "redef" commands (this is the default).
+\begin{verbatim}
+%> type A = !X X;
+*** Near:
+type A = !X X;
+        ^     
+*** Syntax error, Inductive types are illegal
+%> inductive;
+inductive is now on.
+%> type A = !X X;
+New type A defined.
+\end{verbatim}
+          
+  \ditem{\tt let [rec] {\it name1} = {\it terme1} [and {\it name2} = {\it
+      terme2} ...]  ;} define some terms. The definition can be mutually
+  recursive (see the command {\tt recursive}) when the keyword {\tt rec} is
+  used. Old definition are just hidden, term using the old definition are not
+  affected. When terms are printed with the {\tt print} command and when they
+  refers to ``hidden'' definition the name are marked with \verb@#old#@ (See
+  also the {\tt redef} command).
+ 
+\begin{verbatim}
+%> let i = \x.x;
+New term "i" defined.
+%> let j = \x.x i;
+New term "j" defined.
+%> let i = \x.x x;
+Warning: hiding old definition of "i".
+%> print j;
+\x.x i#old#
+\end{verbatim}
+  
+  \ditem{\tt margin [{\it num}] ;} Set the maximum number of characters
+  the pretty-printer can use on a line. If no number is given, it prints the
+  current value. Beware : the {\tt margin} command might affect the value of 
+  {\tt max\_indent}.
+  
+  \ditem{\tt max\_depth [{\it num}] ;} Set the maximum ``depth'' before terms
+  are printed as ``...'' by the pretty printer. This depth corresponds
+  approximately to the number of imbricated parenthesis. If no number is
+  given, it prints the current value.
+  
+  \ditem{\tt max\_indent [{\it num}] ;} Set the maximum number of indentations
+  the pretty printer can use. If no number is given, it prints the current
+  value.
+        
+\ditem{\tt mode {\it amode} ;} change the evaluation mode. {\tt\it amode}
+  can be {\tt lazy}, {\tt left} or {\tt trace}.
+
+\ditem{\tt mode ;} print the current mode.
+\begin{verbatim}
+%> mode left;
+Evaluation mode changed to "left".
+%> mode;
+Evaluation mode is "left".
+\end{verbatim}
+
+\ditem{\tt path "{\it directory}" ;}
+        add "directory" to the path-list used by the "include" command
+
+\ditem{path ;}
+        prints the current path-list
+\begin{verbatim}
+%> path "../Examples";
+"../Examples" added to the path-list
+%> path;
+The path-list is:
+    ../Examples
+    /users/cs/raffalli/camllight/Normaliser/Examples
+\end{verbatim}
+        
+\ditem{\tt print {\it term} ;}
+        print the term (no normalisation).
+
+\ditem{\tt prrec {\it term} ;}
+        print the term (no normalisation) and expend all definitions.
+        This does not terminate if the {\tt\it term} uses recursive definition
+        (See the {\tt recursive} command). However term using the fix-point
+        combinator ``\verb@!@'' are printed correctly. 
+\begin{verbatim}
+%> let i = \x.x;
+New term "i" defined.
+%> let j = \x.i x;
+New term "j" defined.
+%> print j;
+\x.i x
+%> prrec j;
+\x.(\x1.x1) x
+%> j;
+\x.x
+number of beta-reduction : 1
+\end{verbatim}
+          
+\ditem{\tt quit ;}
+        quit the program.
+\begin{verbatim}
+%> quit;
+Bye.
+\end{verbatim}
+        
+\ditem{\tt recursive [on];} 
+        turn on the possibility to use recursive definition 
+          with "let" and "redef" commands.
+\ditem{\tt recursive off ;}
+        turn off the possibility to use recursive definition 
+          with "let" and "redef" commands (this is the default).
+\begin{verbatim}
+%> let fix = \f.fix f;
+
+*** Unbound identifier: fix
+%>  recursive;
+Recursive definition are now allowed.
+%> let fix = \f.fix f;
+New term "fix" defined.
+\end{verbatim}
+          
+\ditem{\tt redef [rec] {\it name1} = {\it terme1} [and {\it name2} = {\it
+              terme2} ...] ;} same as the command {\tt let} but old
+          definition are replaced by the new one, term using the old
+          definition now use the new one.
+\begin{verbatim}
+%> let i = \x.x;
+New term "i" defined.
+%> let j = \x.i x;
+New term "j" defined.
+%> j;
+\x.x
+number of beta-reduction : 1
+%> redef i = \x.x x;
+Warning: redefinition of "i".
+%> j;
+\x.x x
+number of beta-reduction : 1
+\end{verbatim}
+
+\ditem{\tt tab [{\it num}] ;}
+        Set the size of the tabulations used by the pretty printer. If no size
+        is given, it prints the current value.
+
+\begin{verbatim}
+%> tab;
+tab = 2;
+%> tab 5;
+tab = 5
+%> print Euclide;
+\n m.n
+     (\np.Euclide np m
+          (\q r.catch (Sub (nSz r) m) (\nr.pair (So q) nr)
+          (pair (nSz q) (nSz r))))
+     (\np.Euclide np m
+          (\q r.catch (Sub (So r) m) (\nr.pair (So q) nr)
+          (pair (nSz q) (So r))))
+     (pair End End):(Bin -> Bin -> P[Bin,Bin])
+\end{verbatim}
+        
+\ditem{\tt trace {\it name} [{\it nbargs}] ;} Ask the normaliser to
+        print the arguments given to the term named {\it name}. If the
+        optional argument {\it nbargs} is specified, at most {\it nbargs}
+        arguments are printed.  If other definitions where traced they remain
+        traced however.  In trace mode only the beta-reductions are traced (not
+        the function call specify by the \verb!trace! command.
+
+\ditem{\tt trace {\it name} off ;}
+        Turn off tracing of the term named "name".
+
+\ditem{\tt trace ;}
+        Print informations about traced definitions.
+
+\begin{verbatim}
+%> let i = \x.x;
+New term "i" defined.
+%> trace i 1;
+"i" is now traced (at most 1 argument is printed).
+All beta-reduction are no longer traced.
+%> i i i;
+ ....
+    i is applied to:
+        i
+ ....
+    i is applied to:
+        i
+ ....
+    i is applied to nothing.
+\x.x
+number of beta-reduction : 2
+%> trace i off;
+"i" is no longer traced.
+%> i i i;
+\x.x
+number of beta-reduction : 2
+%> mode trace;
+Evaluation mode changed to "trace".
+%> i i i;
+ .....
+    (\x.x)
+        i
+        i
+
+ .....
+    (\x.x)
+        i
+
+\x.x
+number of beta-reduction : 2
+\end{verbatim}
+
+\ditem{\tt type {\it name} = {\it a\_type};}
+  Define a new type abbreviation of name {\tt\it name}.
+\ditem{\tt type {\it name}[{\it name1},...,{\it namen}] = {\it a\_type};}
+Define a new type abbreviation of name {\tt\it name} using $n$ parameters.
+\begin{verbatim}
+%> type Bool = /\X (X -> X -> X);
+New type Bool defined.
+%> type Pair[A,B] = /\X((A -> B -> X) -> X);
+New type Pair defined.
+\end{verbatim}
+
+\ditem{\tt typed [on];} 
+        turn on the type system.
+\ditem{\tt typed off ;}
+        turn off the type system.
+\begin{verbatim}
+%> \x.x;
+_ = \x.x
+number of beta-reduction : 0
+%> typed;
+typed is now on.
+%> \x.x;
+_ : /\X (X -> X)
+_ = \x.x
+number of beta-reduction : 0
+\end{verbatim}
+
+\end{definition}
+      
+\section{Lazy evaluation and the representation of data.}
+
+To make possible evaluation of fairly large terms, a lazy normalisation is
+provided. This means that in an application \verb@t u@, all the reduction on
+the argument \verb@u@ will be done only once till \verb@u@ is reduced to an
+abstraction or a variable apply to some arguments. Reduction under an
+abstraction won't be shared. 
+
+This means that not all the coding of data in pure \TLambda-calculus will be
+efficient in lazy evaluation. A simple rule to follow is that all constructors
+should have a form \verb@\a1 .. ap x1 ... xn. xi a1 ... ap@. In this term,
+{\tt a1 ... an} are the arguments of the constructor while {\tt x1 ... xn} are
+used to distinguish this constructor (identified by the head variable {\tt xi})
+from others.  If you respect this rule, data will only be computed once.
+
+Note that Church representation of natural numbers is not good with respect to
+lazy evaluation has successor is \verb@\n f x. f (n f x)@ (the alternative
+definition \verb@\n f x. n f (f x)@ is not better). Indeed, if you compute a
+non null Church numeral {\tt t} only the reduction to the form \verb@\f x.f
+t'@ is shared, but no further reduction on \verb@t'@. A better unary
+representation of natural numbers are recursive natural (in this case,
+\verb@t'@ is a closed term and further reduction are shared):
+\begin{verbatim}
+let 0 = \f x. x;
+let S = \n f x. f n;
+let Pred = \n. n (\x.x) 0;
+\end{verbatim}
+
+If you only use this kind of coding for your data-types, you should get
+performance proportional to those you would get with any other functional
+language~!
+
+\section{Using the trace mode.}
+
+The trace mode prints the result as it is being computed on an unindented
+line. When it must print some tracing information, then it prints some dots,
+and prints the information indented and it goes on till the end of the
+normalisation. 
+
+For instance if we consider the reduction of \verb@(\x y.x y (x x) (y x))
+\z.z@ when all beta-reductions are printed:
+\begin{verbatim}
+%> mode trace;
+Evaluation mode changed to "trace".
+%> (\x y.x y (x x) (y x)) \z.z;
+ .....                                  1 2 3 4
+    (\x y.x y (x x) (y x))              1
+        (\z.z)                          1
+
+\y. .....                               2 3 4
+    (\z.z)                              2 
+        y                               2
+        ((\z.z) (\z.z))                 2  
+        (y (\z.z))                      2
+
+y  .....                                3 4
+    ((\z.z)                             3 
+        (\z.z))                         3
+     (y (\z.z))                         3
+
+(\z.z) (y (\z1.z1))                     4
+number of beta-reduction : 3
+\end{verbatim}
+
+We added on the right some numbers to mark the lines (they are not printed by
+the normaliser). If you read everything on the line marked by {\tt 1}, you
+get the state of the term before the first reduction. If you read everything
+on the lines marked by {\tt 2}, you get the state of the term before the
+second reduction and so on. If you only read the unindented line (marked by
+{\tt 4}), you read the normal form of the term: \verb@\y. y (\z.z) (y
+(\z1.z1))@.
+
+When tracing some functions (in lazy or left mode), the printed information is
+just the name of the traced function and the arguments it is receiving (or
+only some of them):
+
+\begin{verbatim}
+%> let i = \z.z;
+New term "i" defined.
+%> trace i;
+"i" is now traced.
+%> (\x y.x y (x x) (y x)) i;
+_ = ....
+    i is applied to:
+        y
+        (i i)
+        (y i)
+ ....
+    i is applied to:
+        i
+ ....
+    i is applied to nothing.
+ ....
+    i is applied to nothing.
+
+\y.y (\z.z) (y (\z.z))
+number of beta-reduction : 3
+\end{verbatim}
+
+You should always keep in mind that tracing or debugging can be very difficult
+because \TLambda-terms are not very readable and because call-by-name produces
+an unintuitive order of evaluation.  However, the system try to keep the
+original names of bound variables and this can help when debugging if you
+choose meaningful names for bound variables.
+
+\bibliography{doc}
+\bibliographystyle{plain}
+
+\nocite{Bar84}
+\nocite{Kri90}
+\nocite{Roz93}
+\nocite{GLT88}
+
+\end{document}
+

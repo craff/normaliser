@@ -1,0 +1,41 @@
+# natural numbers in recursive encoding
+typed off;
+include "bool";
+
+let 0 = \f x.x;
+let S = \n f x. f n;
+let 1 = S 0;
+let 2 = S 1;
+let 3 = S 2;
+let 4 = S 3;
+let 5 = S 4;
+let 6 = S 5;
+let 7 = S 6;
+let 8 = S 7;
+let 9 = S 8;
+let 10 = S 9;
+
+let rec Add = \n m.  n  (\np. S (Add np m))   m;
+let rec Mul = \n m.  n  (\np. Add m (Mul np m))   0;
+let Pred = \n. n (\p.p) 0;
+
+let rec leqN = \n m.  n  (\np. m (\mp. leqN np mp) False)   True;
+let rec geqN = \n m.  m  (\mp. n (\np. geqN np mp) False)   True;
+let eqN  = \n m.  n  (\np. m (\mp. leqN np mp) False)   (m (\mp.False) True);
+
+# a gool example for lazy evaluation :
+let rec fib_aux = \n rp rpp. n (\np. let r = Add rp rpp in fib_aux np r rp) rp;
+let fib = \n. fib_aux n 1 0;
+
+#a strongly normalisable recursor
+
+let Rec = \a f n.
+  n (\p r. p (f (Pred n) r) (\r.a) r)
+    (\r.a)
+    (\p r. p (f (Pred n) r) (\r.a) r);
+
+let 20 = Add 10 10;
+let 30 = Add 20 10;
+let 40 = Add 30 10;
+let 100 = Mul 10 10;
+

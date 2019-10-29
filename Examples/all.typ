@@ -1,0 +1,9 @@
+include "bool.typ";
+include "church.typ";
+include "prod.typ";
+include "liste.typ";
+include "streams.typ";
+include "streams2.typ";
+include "tree.typ";
+include "state.typ";
+include "tests.typ";
