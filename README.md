@@ -11,13 +11,17 @@ play with it.
 
   It has some interesting features :
 
+ - It is maintained (compile with latest OCaml) but not changed anymore.
+   If you use it for teaching, you files will probably still work in 10 or
+   20 years
+
  - Three modes of evaluation:
        lazy: call-by-name with some sharing
        left: call-by-name with no sharing
        trace: call-by-name and printing of each beta-reduction step or
               tracing of particular functions.
 
- - It is implemented in Objective-Caml (a ML dialect) so easily portable
+ - It is implemented in OCaml (a ML dialect) so easily portable
      to many machines, even very small ones.
 
  - It is quite efficient. It uses a High-Order-Abstract-Syntax
