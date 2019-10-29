@@ -55,4 +55,20 @@ make lambdaopt
 
 ### EXAMPLES:
 
-  See in the Examples directory.
+  See in the Examples directory, here is just the Church numeral as a teaser:
+
+```
+typed;
+
+type Nat = /\X ((X -> X) -> X -> X);
+
+let 0 = (\f x.x) : Nat;
+let S = \n:Nat.(\f x.f (n f x)):Nat;
+let 1 = S 0; let 2 = S 1; let 3 = S 2; let 4 = S 3;
+let 5 = S 4; let 6 = S 5; let 7 = S 6; let 8 = S 7;
+let 9 = S 8; let 10 = S 9;
+let add = \n:Nat m:Nat.(\f x.n f (m f x)) : Nat;
+let mul = \n:Nat m:Nat.(\f.n (m f)):Nat;
+let 20 = add 10 10; let 30 = add 20 10;
+let 40 = add 30 10; let 100 = mul 10 10;
+```
